@@ -172,12 +172,10 @@ class User extends Authenticatable
     public function getCachedPermissions()
     {
         $permissions = json_decode(Cache::get('user_'.$this->id.'_permissions'));
-        do{
+        if(!$permissions){
             $this->updateCachedPermissions();
             $permissions = json_decode(Cache::get('user_'.$this->id.'_permissions'));
-        }while(!$permissions);
-
-
+        }
         return Permission::hydrate($permissions);
     }
 
