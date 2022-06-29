@@ -2,7 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\PermissionRole;
+use App\Models\PermissionUser;
 use Illuminate\Support\ServiceProvider;
+use App\Observers\PermissionRoleObserver;
+use App\Observers\PermissionUserObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        PermissionUser::observe(PermissionUserObserver::class);
+        PermissionRole::observe(PermissionRoleObserver::class);
     }
 }

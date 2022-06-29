@@ -27,6 +27,6 @@ class UpdatePermissionsInCache
      */
     public function handle(PermissionsChangedEvent $event)
     {
-        Cache::put('user_'.$event->user->id.'_permissions', json_encode($event->user->allPermissions()), now()->addHours(2));
+        Cache::put('user:'.$event->user->id.':permissions', $event->user->permissions, now()->addHours(2));
     }
 }

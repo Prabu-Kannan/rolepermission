@@ -8,8 +8,6 @@ use App\Models\Permission;
 use App\Models\Organization;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
-// use Illuminate\Foundation\Testing\WithFaker;
-// use Illuminate\Foundation\Testing\RefreshDatabase;
 
     beforeEach(function () {
         Permission::insert([
@@ -64,8 +62,8 @@ use Illuminate\Support\Facades\Cache;
         $user->organizations()->attach($organization->id);
         $permission = Permission::where('name', 'INVITE_TEAM')->first();
         $user->givePermissionTo($permission->name);
-        expect($user)->userPermissions->toHaveCount(1)
-        ->permissions()->toHaveCount(1)
+        expect($user)->permissions->toHaveCount(1)
+        ->permissions->toHaveCount(1)
         ->hasPermissionTo('INVITE_TEAM')->toBeTrue();
     });
 
@@ -75,27 +73,9 @@ use Illuminate\Support\Facades\Cache;
         $user->organizations()->attach($organization->id);
         $permission = Permission::where('name', 'INVITE_CLIENT')->first();
         $user->givePermissionTo($permission->name);
-        expect($user)->userPermissions->toHaveCount(1)
-        ->permissions()->toHaveCount(1)
+        expect($user)->permissions->toHaveCount(1)
+        ->permissions->toHaveCount(1)
         ->can_do('INVITE_CLIENT')->toBeTrue();
-    });
-
-    it('should_give_users_permissions_via_role', function(){
-        $user = User::factory()->create();
-        $organization = Organization::factory()->create();
-        $user->organizations()->attach($organization->id);
-        $role = $organization->roles()->create([
-            'name' => 'Manager',
-            'description' => 'the user can edit the articles',
-        ]);
-        $user->assignRole('Manager');
-        $permission = Permission::where('name', 'JOB_VIEW')->first();
-        $role->givePermissionTo($permission->name);
-        // dd($user->fresh()->rolePermissions);
-        expect($user)
-        ->fresh()->rolePermissions->toHaveCount(1)
-        ->fresh()->permissions()->toHaveCount(1)
-        ->hasPermissionTo('JOB_VIEW')->toBeTrue();
     });
 
     it('should_return_true_if_any_of_the_permission_is_present', function($permission, $permission_array){
@@ -108,9 +88,10 @@ use Illuminate\Support\Facades\Cache;
         ]);
         $user->assignRole('Manager');
         $permission = Permission::where('name', $permission)->first();
-        $role->givePermissionTo($permission->name);
+        $user->givePermissionTo($permission->name);
+
         expect($user->fresh())
-            ->rolePermissions->toHaveCount(1)
+            ->permissions->toHaveCount(1)
             ->hasAnyPermission($permission_array)->toBeTrue();
     })->with([
             ['permission'=>'ROLE_VIEW', 'permission_array' => ['ROLE_VIEW', 'JOBS_VIEW']],
@@ -126,7 +107,6 @@ use Illuminate\Support\Facades\Cache;
             'description' => 'Manages the floor',
         ]);
         $user->assignRole('Manager');
-        dump($permission);
         $permission = Permission::where('name', $permission)->first();
         $role->givePermissionTo($permission->name);
         $this->assertTrue(empty(array_intersect($user->getPermissionNames()->toArray(), $permission_array)));
@@ -141,16 +121,20 @@ use Illuminate\Support\Facades\Cache;
         $user->organizations()->attach($organization->id);
         $permission = Permission::where('name', $permission)->first();
 
-        $user->givePermissionTo($permission->name);
-        expect($user)
-            ->userPermissions->toHaveCount(1)
-            ->permissions()->toHaveCount(1)
-            ->hasPermissionTo($permission->name)->toBeTrue();
+        $role = $organization->roles()->create([
+            'name' => 'Manager',
+            'description' => 'Manages the floor',
+        ]);
 
-        $user->fresh()->revokePermissionTo($permission->name);
+        $user->assignRole('Manager');
+        $role->givePermissionTo($permission->name);
+        expect($user)
+            ->rolePermissions->toHaveCount(1)
+            ->hasRolePermissionTo($permission->name)->toBeTrue();
+
+        $role->revokePermissionTo($permission->name);
         expect($user->fresh())
-            ->userPermissions->toHaveCount(0)
-            ->permissions()->toHaveCount(0)
+            ->permissions->toHaveCount(0)
             ->hasPermissionTo($permission->name)->toBeFalse();
     })->with([
             ['permission'=>'JOB_VIEW', 'permission_array' => ['TEAM_REMOVE_MEMBER', 'TEAM_ROLE_UPDATE']],
@@ -166,8 +150,7 @@ use Illuminate\Support\Facades\Cache;
             $user->fresh()->givePermissionTo($permission->name);
         }
         expect($user)
-        ->userPermissions->toHaveCount(4)
-        ->permissions()->toHaveCount(4)
+        ->permissions->toHaveCount(4)
         ->hasAllDirectPermissions($permission_array)->toBeTrue();
     })->with([
         ['permission'=> ['INVITE_CLIENT', 'INVITE_TEAM', 'TEAM_VIEW', 'TEAM_REMOVE_MEMBER',], 'permission_array' => ['INVITE_CLIENT', 'INVITE_TEAM', 'TEAM_VIEW']],
@@ -182,8 +165,8 @@ use Illuminate\Support\Facades\Cache;
             $permission = Permission::where('name', $permission)->first();
             $user->fresh()->givePermissionTo($permission->name);
         }
-        expect($user)->userPermissions->toHaveCount(3)
-        ->permissions()->toHaveCount(3)
+        expect($user)->permissions->toHaveCount(3)
+        ->permissions->toHaveCount(3)
         ->hasAllDirectPermissions($permission_array)->toBeFalse();
     })->with([
             ['permission'=> ['INVITE_TEAM', 'TEAM_VIEW', 'TEAM_REMOVE_MEMBER',], 'permission_array' => ['INVITE_CLIENT', 'INVITE_TEAM', 'TEAM_VIEW']],
@@ -195,13 +178,11 @@ use Illuminate\Support\Facades\Cache;
         $user = User::factory()->create();
         $organization = Organization::factory()->create();
         $user->organizations()->attach($organization->id);
-        dump($permissions);
         foreach ($permissions as $key => $permission) {
             $permission = Permission::where('name', $permission)->first();
             $user->fresh()->givePermissionTo($permission->name);
         }
-        expect($user)->userPermissions->toHaveCount(4)
-        ->permissions()->toHaveCount(4)
+        expect($user)->permissions->toHaveCount(4)
         ->hasAnyDirectPermission($permission_array)->toBeTrue();
     })->with([
             ['permissions'=> ['JOB_DELETE', 'INVITE_TEAM', 'JOB_UPDATE', 'TEAM_REMOVE_MEMBER'], 'permission_array' => ['INVITE_CLIENT', 'INVITE_TEAM', 'TEAM_VIEW']],
@@ -217,8 +198,7 @@ use Illuminate\Support\Facades\Cache;
             $user->fresh()->givePermissionTo($permission->name);
         }
         expect($user)
-        ->userPermissions->toHaveCount(3)
-        ->permissions()->toHaveCount(3)
+        ->permissions->toHaveCount(3)
         ->hasAnyDirectPermission($permission_array)->toBeFalse();
     })->with([
             ['permission'=> ['INVITE_TEAM', 'TEAM_VIEW', 'TEAM_REMOVE_MEMBER',], 'permission_array' => ['INVITE_CLIENT', 'INVITE_VENDOR', 'TEAM_UPDATE']],
@@ -233,7 +213,7 @@ use Illuminate\Support\Facades\Cache;
         $user->organizations()->attach($organization->id);
         $permission = Permission::where('name', $permission)->first();
         $user->givePermissionTo($permission->name);
-        $cached_permissions = json_decode(Cache::get('user_'.$user->id.'_permissions'));
+        $cached_permissions = $user->getCachedPermissions();
         expect($user->fresh())
         ->getPermissionNames()->contains($permission->name)->toBeTrue();
     });
@@ -245,13 +225,88 @@ use Illuminate\Support\Facades\Cache;
         $user->organizations()->attach($organization->id);
         $permission = Permission::where('name', $permission)->first();
         $user->givePermissionTo($permission->name);
-        $cached_permissions = json_decode(Cache::get('user_'.$user->id.'_permissions'));
+        $cached_permissions = $user->getCachedPermissions();
         $this->assertTrue($user->getPermissionNames()->contains($permission->name));
 
         $permission_2 = 'ROLE_UPDATE';
         $permission_2 = Permission::where('name', $permission_2)->first();
-        $user->fresh()->givePermissionTo($permission_2->name);
-        expect($user->fresh())
+        $user->givePermissionTo($permission_2->name);
+
+        // dd($user->fresh()->getPermissionNames());
+        expect($user)
         ->getPermissionNames()->contains($permission->name)->toBeTrue()
         ->getPermissionNames()->contains($permission_2->name)->toBeTrue();
     });
+
+
+    it('should_give_users_permissions_via_role', function(){
+        $user = User::factory()->create();
+        $organization = Organization::factory()->create();
+        $user->organizations()->attach($organization->id);
+        $role = $organization->roles()->create([
+            'name' => 'Manager',
+            'description' => 'the user can edit the articles',
+        ]);
+        $user->assignRole('Manager');
+        $permission = Permission::where('name', 'JOB_VIEW')->first();
+        $role->givePermissionTo($permission->name);
+        expect($user)
+        ->fresh()->rolePermissions->toHaveCount(1)
+        ->hasRolePermissionTo('JOB_VIEW')->toBeTrue();
+    });
+
+    it('should_give_users_permissions_via_role_cached', function(){
+        $user = User::factory()->create();
+        $organization = Organization::factory()->create();
+        $user->organizations()->attach($organization->id);
+        $role = $organization->roles()->create([
+            'name' => 'Manager',
+            'description' => 'the user can manage the floor',
+        ]);
+        $user->assignRole('Manager');
+        $permission = Permission::where('name', 'JOB_VIEW')->first();
+        $role->givePermissionTo($permission->name);
+
+        $role_2 = $organization->roles()->create([
+            'name' => 'Supervisor',
+            'description' => 'the user can supervise the floor',
+        ]);
+        $user->assignRole('Supervisor');
+        $permission_2 = Permission::where('name', 'JOB_UPDATE')->first();
+        $role_2->givePermissionTo($permission_2->name);
+
+        expect($user)
+        ->fresh()->rolePermissions->toHaveCount(2)
+        ->cachedRolePermissionNames()->contains('JOB_VIEW')->toBeTrue()
+        ->cachedRolePermissionNames()->contains('JOB_UPDATE')->toBeTrue()
+        ->hasCachedRolePermissionTo('JOB_VIEW')->toBeTrue()
+        ->hasCachedRolePermissionTo('JOB_UPDATE')->toBeTrue();
+    });
+
+     it('should_give_users_permissions_both_ways', function(){
+        $user = User::factory()->create();
+        $organization = Organization::factory()->create();
+        $user->organizations()->attach($organization->id);
+        $permission = Permission::where('name', 'INVITE_TEAM')->first();
+        $user->givePermissionTo($permission->name);
+        expect($user)->permissions->toHaveCount(1)
+        ->permissions->toHaveCount(1)
+        ->hasPermissionTo('INVITE_TEAM')->toBeTrue();
+
+        $role = $organization->roles()->create([
+            'name' => 'Manager',
+            'description' => 'the user can edit the articles',
+        ]);
+        $user->assignRole('Manager');
+        $permission_2 = Permission::where('name', 'JOB_VIEW')->first();
+        $role->givePermissionTo($permission_2->name);
+        expect($user)
+        ->fresh()->rolePermissions->toHaveCount(1)
+        ->hasRolePermissionTo('JOB_VIEW')->toBeTrue();
+
+        expect($user)
+        ->getAllPermissionNames()->contains('JOB_VIEW')->toBeTrue()
+        ->getAllPermissionNames()->contains('INVITE_TEAM')->toBeTrue();
+    });
+
+
