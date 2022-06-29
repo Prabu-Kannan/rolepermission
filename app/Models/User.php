@@ -9,7 +9,6 @@ use App\Models\PermissionRole;
 use App\Models\PermissionUser;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use App\Events\PermissionsChangedEvent;
 use Illuminate\Notifications\Notifiable;
@@ -113,11 +112,9 @@ class User extends Authenticatable
 
         foreach($roles as $role){
             $role_permissions = Cache::get('role:'.$role->id.':permissions');
-            dump($role_permissions->count());
             if (!$role_permissions) {
                 Cache::forever('role:'.$role->id.':permissions', $role->permissions);
                 $role_permissions = Cache::get('role:'.$role->id.':permissions');
-                dump($role_permissions->count());
             }
             $permissions = $permissions->merge($role_permissions);
         }
@@ -219,7 +216,6 @@ class User extends Authenticatable
         if(!$permissions){
             $this->updateCachedPermissions();
             $permissions = Cache::get('user:'.$this->id.':permissions');
-            dump($permissions->count());
         }
 
         return $permissions;

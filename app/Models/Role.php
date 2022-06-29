@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Models\Permission;
 use App\Models\Organization;
 use App\Models\PermissionRole;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -35,7 +34,6 @@ class Role extends Model
 
     public function givePermissionTo($action)
     {
-        Log::info($action);
         $permission = Permission::where('name', $action)->first();
         $this->permissions()->attach($permission->id);
     }
@@ -44,11 +42,6 @@ class Role extends Model
     {
         $permission = Permission::where('name', $action)->first();
         $this->permissions()->detach($permission->id);
-
-        // PermissionRole::where([
-        //     'role_id' => $this->id,
-        //     'permission_id' => $permission->id
-        // ])->delete();
     }
 
     public function hasAnyPermission($expected_permissions)

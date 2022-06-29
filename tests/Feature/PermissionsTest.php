@@ -232,7 +232,6 @@ use Illuminate\Support\Facades\Cache;
         $permission_2 = Permission::where('name', $permission_2)->first();
         $user->givePermissionTo($permission_2->name);
 
-        // dd($user->fresh()->getPermissionNames());
         expect($user)
         ->getPermissionNames()->contains($permission->name)->toBeTrue()
         ->getPermissionNames()->contains($permission_2->name)->toBeTrue();
